@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.pangpi.shortlink.project.dao.mapper.LinkAccessLogsMapper">
+    <select id="listTopIpByShortLink" resultType="java.util.HashMap">
+        SELECT tlal.ip, COUNT(tlal.ip) AS count
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE tlal.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlal.create_time BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlal.full_short_url, tl.gid, tlal.ip
+        ORDER BY count DESC
+        LIMIT 5;
+    </select>
+
+    <select id="listTopIpByGroup" resultType="java.util.HashMap">
+        SELECT tlal.ip,
+               COUNT(tlal.ip) AS count
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlal.create_time BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid, tlal.ip
+        ORDER BY count DESC
+        LIMIT 5;
+    </select>
+
+    <select id="findUvTypeCntByShortLink" resultType="java.util.HashMap">
+        SELECT
+        SUM(old_user) AS oldUserCnt,
+        SUM(new_user) AS newUserCnt
+        FROM (
+        SELECT
+        CASE WHEN COUNT(DISTINCT DATE(tlal.create_time)) > 1 THEN 1 ELSE 0 END AS old_user,
+        CASE WHEN COUNT(DISTINCT DATE(tlal.create_time)) = 1 AND MAX(tlal.create_time) >= #{param.startDate} AND
+        MAX(tlal.create_time) &lt; #{param.endDate} THEN 1 ELSE 0 END AS new_user
+        FROM
+        t_link tl INNER JOIN
+        t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE
+        tlal.full_short_url = #{param.fullShortUrl}
+        AND tl.gid = #{param.gid}
+        AND tl.enable_status = #{param.enableStatus}
+        AND tl.del_flag = '0'
+        GROUP BY
+        tlal.user
+        ) AS user_counts;
+    </select>
+
+    <select id="selectUvTypeByUsers" resultType="java.util.Map">
+        SELECT
+        tlal.user,
+        CASE
+        WHEN MIN(tlal.create_time) BETWEEN #{startDate} AND #{endDate} THEN '新访客'
+        ELSE '老访客'
+        END AS uvType
+        FROM
+        t_link tl INNER JOIN
+        t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE
+        tlal.full_short_url = #{fullShortUrl}
+        AND tl.gid = #{gid}
+        AND tl.del_flag = '0'
+        AND tl.enable_status = #{enableStatus}
+        AND tlal.user IN
+        <foreach item='item' index='index' collection='userAccessLogsList' open='(' separator=',' close=')'>
+            #{item}
+        </foreach>
+        GROUP BY
+        tlal.user;
+    </select>
+
+    <select id="selectGroupUvTypeByUsers" resultType="java.util.Map">
+        SELECT
+        tlal.user,
+        CASE
+        WHEN MIN(tlal.create_time) BETWEEN #{startDate} AND #{endDate} THEN '新访客'
+        ELSE '老访客'
+        END AS uvType
+        FROM
+        t_link tl INNER JOIN
+        t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE
+        tl.gid = #{gid}
+        AND tl.del_flag = '0'
+        AND tl.enable_status = '0'
+        AND tlal.user IN
+        <foreach item='item' index='index' collection='userAccessLogsList' open='(' separator=',' close=')'>
+            #{item}
+        </foreach>
+        GROUP BY
+        tlal.user;
+    </select>
+
+    <select id="findPvUvUidStatsByShortLink" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT COUNT(tlal.user)          AS pv,
+               COUNT(DISTINCT tlal.user) AS uv,
+               COUNT(DISTINCT tlal.ip)   AS uip
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE tlal.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlal.create_time BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlal.full_short_url, tl.gid;
+    </select>
+
+    <select id="findPvUvUidStatsByGroup" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT COUNT(tlal.user)          AS pv,
+               COUNT(DISTINCT tlal.user) AS uv,
+               COUNT(DISTINCT tlal.ip)   AS uip
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlal.create_time BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid;
+    </select>
+
+    <select id="selectGroupPage" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessLogsDO">
+        SELECT tlal.*
+        FROM t_link tl
+                 INNER JOIN t_link_access_logs tlal ON tl.full_short_url = tlal.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlal.create_time BETWEEN #{param.startDate} and #{param.endDate}
+        ORDER BY tlal.create_time DESC
+    </select>
+</mapper>

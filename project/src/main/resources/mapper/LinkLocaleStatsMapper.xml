@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.pangpi.shortlink.project.dao.mapper.LinkLocaleStatsMapper">
+
+    <insert id="shortLinkLocaleStats">
+        INSERT INTO t_link_locale_stats (full_short_url, gid, date, cnt, province, city, country, create_time,
+                                         update_time, del_flag)
+        VALUES ( #{stats.fullShortUrl}, #{stats.gid}, #{stats.date}, #{stats.cnt}, #{stats.province}
+               , #{stats.city}, #{stats.country}, #{stats.create_time}, #{stats.update_time}, #{stats.del_flag})
+        ON DUPLICATE KEY UPDATE cnt = cnt + #{stats.cnt};
+    </insert>
+    
+    <select id="listLocaleByShortLink" resultType="com.pangpi.shortlink.project.dao.entity.LinkLocaleStatsDO">
+        SELECT tlls.province,
+               SUM(tlls.cnt) AS cnt
+        FROM t_link tl
+                 INNER JOIN
+             t_link_locale_stats tlls ON tl.full_short_url = tlls.full_short_url
+        WHERE tlls.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlls.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlls.full_short_url, tl.gid, tlls.province;
+    </select>
+    
+    <select id="listLocaleByGroup" resultType="com.pangpi.shortlink.project.dao.entity.LinkLocaleStatsDO">
+        SELECT tlls.province,
+               SUM(tlls.cnt) AS cnt
+        FROM t_link tl
+                 INNER JOIN
+             t_link_locale_stats tlls ON tl.full_short_url = tlls.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlls.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid, tlls.province;
+    </select>
+</mapper>

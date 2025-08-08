@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.pangpi.shortlink.project.dao.mapper.LinkAccessStatsMapper">
+    <insert id="shortLinkStats">
+        INSERT INTO t_link_access_stats (full_short_url, date, pv, uv, uip, hour, weekday, create_time, update_time,
+                                         del_flag)
+        VALUES (#{stats.fullShortUrl}, #{stats.date}, #{stats.pv}, #{stats.uv}, #{stats.uip}, #{stats.hour},
+                #{stats.weekday}, NOW(), NOW(), 0)
+        ON DUPLICATE KEY UPDATE pv  = pv + #{stats.pv},
+                                uv  = uv + #{stats.uv},
+                                uip = uip + #{stats.uip};
+    </insert>
+
+
+
+    <select id="listStatsByShortLink" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.date,
+               SUM(tlas.pv)  AS pv,
+               SUM(tlas.uv)  AS uv,
+               SUM(tlas.uip) AS uip
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tlas.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlas.full_short_url, tl.gid, tlas.date;
+    </select>
+
+    <select id="listStatsByGroup" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.date,
+               SUM(tlas.pv)  AS pv,
+               SUM(tlas.uv)  AS uv,
+               SUM(tlas.uip) AS uip
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid, tlas.date;
+    </select>
+    
+    <select id="listHourStatsByShortLink" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.hour,
+               SUM(tlas.pv) AS pv
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tlas.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlas.full_short_url, tl.gid, tlas.hour;
+    </select>
+    
+    <select id="listHourStatsByGroup" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.hour,
+               SUM(tlas.pv) AS pv
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid, tlas.hour;
+    </select>
+
+    <select id="listWeekdayStatsByShortLink" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.weekday,
+               SUM(tlas.pv) AS pv
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tlas.full_short_url = #{param.fullShortUrl}
+          AND tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = #{param.enableStatus}
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tlas.full_short_url, tl.gid, tlas.weekday;
+    </select>
+
+    <select id="listWeekdayStatsByGroup" resultType="com.pangpi.shortlink.project.dao.entity.LinkAccessStatsDO">
+        SELECT tlas.weekday,
+               SUM(tlas.pv) AS pv
+        FROM t_link tl
+                 INNER JOIN
+             t_link_access_stats tlas ON tl.full_short_url = tlas.full_short_url
+        WHERE tl.gid = #{param.gid}
+          AND tl.del_flag = '0'
+          AND tl.enable_status = '0'
+          AND tlas.date BETWEEN #{param.startDate} and #{param.endDate}
+        GROUP BY tl.gid, tlas.weekday;
+    </select>
+</mapper>
